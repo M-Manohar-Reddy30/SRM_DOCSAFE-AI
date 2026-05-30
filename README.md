@@ -7,6 +7,9 @@ SrmDocSafe AI is an advanced AI-powered document intelligence platform that enab
 The platform combines OCR, Retrieval-Augmented Generation (RAG), Semantic Search, Vector Embeddings, Document Classification, AI Summarization, and Study Note Generation into a single modern workspace.
 
 ---
+Demo Video 📹 : https://drive.google.com/file/d/1LdZ9A14OQNY4N5jiosHbGIfzxXr0_TeF/view?usp=sharing
+Live URL : https://srm-docsafe-ai.vercel.app/
+
 
 ## 🌟 Features
 
