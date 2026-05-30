@@ -18,3 +18,4 @@ pdfplumber
 PyMuPDF
 python-dotenv
 google-generativeai
+groq
