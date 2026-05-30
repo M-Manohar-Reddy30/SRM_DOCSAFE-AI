@@ -28,5 +28,4 @@ class Document(Base, TimestampMixin):
     study_notes = relationship("StudyNote", back_populates="document", cascade="all, delete-orphan")
     tags = relationship("AITag", back_populates="document", cascade="all, delete-orphan")
     deadlines = relationship("Deadline", back_populates="document", cascade="all, delete-orphan")
-    quizzes = relationship("Quiz", back_populates="document", cascade="all, delete-orphan")
     chat_histories = relationship("ChatHistory", back_populates="document", cascade="all, delete-orphan")

@@ -2,16 +2,16 @@ import json
 import logging
 from typing import List, Optional
 
-import google.generativeai as genai
+from groq import Groq
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
-
-model = genai.GenerativeModel("gemini-2.5-flash")
+client = Groq(
+    api_key=settings.GROQ_API_KEY
+)
 
 
 class ClassificationResponse(BaseModel):
@@ -41,24 +41,57 @@ class StudyNotesResponse(BaseModel):
 class AIService:
 
     @staticmethod
-    def _truncate_text(text: str, max_chars: int = 15000) -> str:
+    def _truncate_text(
+        text: str,
+        max_chars: int = 15000
+    ) -> str:
         return text[:max_chars]
 
     @staticmethod
-    def _clean_json_response(response_text: str):
+    def _clean_json_response(
+        response_text: str
+    ):
         cleaned = (
             response_text
             .replace("```json", "")
             .replace("```", "")
             .strip()
         )
+
         return json.loads(cleaned)
 
     @staticmethod
-    def classify_document(text: str) -> str:
+    def _generate(prompt: str) -> str:
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.2,
+        )
+
+        return (
+            response
+            .choices[0]
+            .message
+            .content
+        )
+
+    @staticmethod
+    def classify_document(
+        text: str
+    ) -> str:
+
         try:
+
             prompt = f"""
-Classify this document into ONE category:
+Classify this document into ONE category only.
+
+Categories:
 
 Marksheet
 Resume
@@ -74,12 +107,14 @@ Document:
 
 {text[:3000]}
 
-Return only the category name.
+Return ONLY category name.
 """
 
-            response = model.generate_content(prompt)
-
-            category = response.text.strip()
+            category = (
+                AIService
+                ._generate(prompt)
+                .strip()
+            )
 
             valid = [
                 "Marksheet",
@@ -99,14 +134,24 @@ Return only the category name.
             return category
 
         except Exception as e:
-            logger.error(f"Classification failed: {e}")
+
+            logger.error(
+                f"Classification failed: {e}"
+            )
+
             return "Unknown"
 
     @staticmethod
-    def generate_summary(text: str) -> Optional[SummaryResponse]:
+    def generate_summary(
+        text: str
+    ) -> Optional[SummaryResponse]:
 
         try:
-            text = AIService._truncate_text(text)
+
+            text = (
+                AIService
+                ._truncate_text(text)
+            )
 
             prompt = f"""
 Summarize this document.
@@ -124,29 +169,41 @@ Document:
 {text}
 """
 
-            response = model.generate_content(prompt)
+            response_text = (
+                AIService
+                ._generate(prompt)
+            )
 
-            print("========== GEMINI SUMMARY ==========")
-            print(response.text)
-            print("====================================")
+            data = (
+                AIService
+                ._clean_json_response(
+                    response_text
+                )
+            )
 
-            data = AIService._clean_json_response(response.text)
-
-            return SummaryResponse(**data)
+            return SummaryResponse(
+                **data
+            )
 
         except Exception as e:
-            logger.error(f"Summary failed: {e}")
+
+            logger.error(
+                f"Summary failed: {e}"
+            )
+
             return None
 
     @staticmethod
-    def generate_tags(text: str) -> List[str]:
+    def generate_tags(
+        text: str
+    ) -> List[str]:
 
         try:
 
             prompt = f"""
-Generate 5-10 tags for this document.
+Generate 5-10 useful tags.
 
-Return JSON:
+Return JSON only:
 
 {{
     "tags": []
@@ -155,25 +212,42 @@ Return JSON:
 {text[:5000]}
 """
 
-            response = model.generate_content(prompt)
+            response_text = (
+                AIService
+                ._generate(prompt)
+            )
 
-            data = AIService._clean_json_response(response.text)
+            data = (
+                AIService
+                ._clean_json_response(
+                    response_text
+                )
+            )
 
-            return data.get("tags", [])
+            return data.get(
+                "tags",
+                []
+            )
 
         except Exception as e:
-            logger.error(f"Tags failed: {e}")
+
+            logger.error(
+                f"Tags failed: {e}"
+            )
+
             return []
 
     @staticmethod
-    def extract_deadlines(text: str) -> List[DeadlineResponse]:
+    def extract_deadlines(
+        text: str
+    ) -> List[DeadlineResponse]:
 
         try:
 
             prompt = f"""
-Extract deadlines from the document.
+Extract deadlines.
 
-Return JSON:
+Return JSON only:
 
 {{
     "deadlines": [
@@ -188,30 +262,50 @@ Return JSON:
 {text}
 """
 
-            response = model.generate_content(prompt)
+            response_text = (
+                AIService
+                ._generate(prompt)
+            )
 
-            data = AIService._clean_json_response(response.text)
+            data = (
+                AIService
+                ._clean_json_response(
+                    response_text
+                )
+            )
 
             return [
                 DeadlineResponse(**item)
-                for item in data.get("deadlines", [])
+                for item in data.get(
+                    "deadlines",
+                    []
+                )
             ]
 
         except Exception as e:
-            logger.error(f"Deadline extraction failed: {e}")
+
+            logger.error(
+                f"Deadline extraction failed: {e}"
+            )
+
             return []
 
     @staticmethod
-    def generate_study_notes(text: str) -> Optional[StudyNotesResponse]:
+    def generate_study_notes(
+        text: str
+    ) -> Optional[StudyNotesResponse]:
 
         try:
 
-            text = AIService._truncate_text(text)
+            text = (
+                AIService
+                ._truncate_text(text)
+            )
 
             prompt = f"""
 Create study notes.
 
-Return JSON:
+Return JSON only.
 
 {{
     "exam_notes": "",
@@ -222,12 +316,26 @@ Return JSON:
 {text}
 """
 
-            response = model.generate_content(prompt)
+            response_text = (
+                AIService
+                ._generate(prompt)
+            )
 
-            data = AIService._clean_json_response(response.text)
+            data = (
+                AIService
+                ._clean_json_response(
+                    response_text
+                )
+            )
 
-            return StudyNotesResponse(**data)
+            return StudyNotesResponse(
+                **data
+            )
 
         except Exception as e:
-            logger.error(f"Study Notes failed: {e}")
+
+            logger.error(
+                f"Study notes failed: {e}"
+            )
+
             return None

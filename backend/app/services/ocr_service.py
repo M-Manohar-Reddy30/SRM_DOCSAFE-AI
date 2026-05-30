@@ -9,10 +9,33 @@ from typing import Tuple
 class OCRService:
 
     @staticmethod
+    def sanitize_text(text: str) -> str:
+        """
+        Remove NUL characters and invalid control characters.
+        PostgreSQL cannot store NUL (\x00) characters.
+        """
+
+        if not text:
+            return ""
+
+        # Remove NUL characters
+        text = text.replace("\x00", "")
+
+        # Remove other invalid control characters
+        text = "".join(
+            ch for ch in text
+            if ord(ch) >= 32 or ch in "\n\r\t"
+        )
+
+        return text.strip()
+
+    @staticmethod
     def clean_extracted_text(text: str) -> str:
         """
-        Remove excessive whitespace and normalize extracted text.
+        Normalize extracted text.
         """
+
+        text = OCRService.sanitize_text(text)
 
         text = re.sub(r" +", " ", text)
         text = re.sub(r"\n{3,}", "\n\n", text)
@@ -43,10 +66,6 @@ class OCRService:
     def extract_pdf_text(file_path: str) -> Tuple[str, bool]:
         """
         Extract text directly from PDF.
-
-        OCR fallback is disabled because most academic PDFs
-        already contain selectable text.
-
         Returns:
             (extracted_text, ocr_used)
         """
@@ -58,7 +77,10 @@ class OCRService:
             full_text = ""
 
             for page in doc:
-                full_text += page.get_text() + "\n"
+                page_text = page.get_text()
+
+                if page_text:
+                    full_text += page_text + "\n"
 
             full_text = OCRService.clean_extracted_text(
                 full_text
@@ -96,7 +118,9 @@ class OCRService:
         elif "image" in mime_type:
 
             return (
-                OCRService.extract_image_text(file_path),
+                OCRService.extract_image_text(
+                    file_path
+                ),
                 True
             )
 

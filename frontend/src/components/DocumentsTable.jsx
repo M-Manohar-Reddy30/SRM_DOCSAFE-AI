@@ -1,214 +1,381 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+
+import {
+Search,
+FileText,
+Download,
+Trash2,
+Sparkles,
+BookOpen,
+} from "lucide-react";
+
 import SummaryModal from "./SummaryModal";
 import NotesModal from "./NotesModal";
 
 export default function DocumentsTable() {
-  const [documents, setDocuments] = useState([]);
-  const [selectedDoc, setSelectedDoc] = useState(null);
-  const [selectedNotesDoc, setSelectedNotesDoc] = useState(null);
+const [documents, setDocuments] =
+useState([]);
 
-  const loadDocuments = async () => {
-    try {
-      const res = await API.get("/documents");
-      setDocuments(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+const [searchTerm, setSearchTerm] =
+useState("");
 
-  const deleteDocument = async (id) => {
-    const confirmDelete = window.confirm(
-      "Delete this document?"
+const [selectedSummary, setSelectedSummary] =
+useState(null);
+
+const [selectedNotes, setSelectedNotes] =
+useState(null);
+
+const loadDocuments = async () => {
+try {
+const res = await API.get(
+"/documents"
+);
+
+  setDocuments(res.data);
+
+} catch (err) {
+
+  console.error(err);
+
+}
+
+};
+
+useEffect(() => {
+  loadDocuments();
+}, []);
+
+const deleteDocument = async (
+id
+) => {
+
+const confirmDelete =
+  window.confirm(
+    "Delete this document?"
+  );
+
+if (!confirmDelete) return;
+
+try {
+
+  await API.delete(
+    `/documents/${id}`
+  );
+
+  loadDocuments();
+
+} catch (err) {
+
+  console.error(err);
+
+}
+
+};
+
+const downloadDocument = async (
+id,
+filename
+) => {
+
+try {
+
+  const response =
+    await API.get(
+      `/documents/${id}/download`,
+      {
+        responseType: "blob",
+      }
     );
 
-    if (!confirmDelete) return;
-
-    try {
-      await API.delete(`/documents/${id}`);
-      loadDocuments();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete document");
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "ready":
-        return "text-green-400";
-
-      case "processing":
-        return "text-yellow-400";
-
-      case "pending":
-        return "text-blue-400";
-
-      case "failed":
-        return "text-red-400";
-
-      default:
-        return "text-gray-400";
-    }
-  };
-
-  useEffect(() => {
-    loadDocuments();
-
-    const interval = setInterval(
-      loadDocuments,
-      5000
+  const url =
+    window.URL.createObjectURL(
+      new Blob([
+        response.data,
+      ])
     );
 
-    return () => clearInterval(interval);
-  }, []);
+  const link =
+    document.createElement(
+      "a"
+    );
 
-  return (
-    <>
-      <div className="bg-slate-800 rounded-xl p-6 mt-6">
+  link.href = url;
 
-        <h2 className="text-white text-xl font-semibold mb-4">
-          My Documents
+  link.setAttribute(
+    "download",
+    filename
+  );
+
+  document.body.appendChild(
+    link
+  );
+
+  link.click();
+
+  link.remove();
+
+  window.URL.revokeObjectURL(
+    url
+  );
+
+} catch (err) {
+
+  console.error(err);
+
+}
+
+};
+
+const getStatusBadge = (
+status
+) => {
+
+switch (
+  status?.toLowerCase()
+) {
+
+  case "ready":
+    return "bg-green-100 text-green-700";
+
+  case "processing":
+    return "bg-yellow-100 text-yellow-700";
+
+  case "failed":
+    return "bg-red-100 text-red-700";
+
+  case "pending":
+    return "bg-blue-100 text-blue-700";
+
+  default:
+    return "bg-slate-100 text-slate-700";
+}
+
+};
+
+const filteredDocuments =
+documents.filter(
+(doc) =>
+doc.original_filename
+?.toLowerCase()
+.includes(
+searchTerm.toLowerCase()
+)
+);
+
+return (
+<> <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+
+    <div className="flex justify-between items-center mb-8">
+
+      <div>
+
+        <h2 className="text-3xl font-bold text-slate-900">
+          Documents
         </h2>
 
-        {documents.length === 0 ? (
-          <p className="text-slate-400">
-            No documents uploaded yet.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
+        <p className="text-slate-500 mt-1">
+          Manage your AI-powered document library
+        </p>
 
-            <table className="w-full text-white">
+      </div>
 
-              <thead>
-                <tr className="border-b border-slate-700">
+    </div>
 
-                  <th className="text-left py-3">
-                    Name
-                  </th>
+    <div className="relative mb-8">
 
-                  <th className="text-left py-3">
-                    Category
-                  </th>
+      <Search
+        size={18}
+        className="absolute left-4 top-4 text-slate-400"
+      />
 
-                  <th className="text-left py-3">
-                    Status
-                  </th>
+      <input
+        type="text"
+        placeholder="Search documents..."
+        value={searchTerm}
+        onChange={(e) =>
+          setSearchTerm(
+            e.target.value
+          )
+        }
+        className="
+          w-full
+          pl-12
+          pr-4
+          py-4
+          rounded-2xl
+          border
+          border-slate-200
+          bg-slate-50
+          focus:outline-none
+          focus:ring-2
+          focus:ring-violet-500
+        "
+      />
 
-                  <th className="text-left py-3">
-                    Actions
-                  </th>
+    </div>
 
-                </tr>
-              </thead>
+    {filteredDocuments.length ===
+    0 ? (
 
-              <tbody>
+      <div className="text-center py-16">
 
-                {documents.map((doc) => (
-                  <tr
-                    key={doc.id}
-                    className="border-b border-slate-700"
-                  >
+        <FileText
+          size={60}
+          className="mx-auto text-slate-300 mb-4"
+        />
 
-                    <td className="py-3">
-                      {doc.original_filename}
-                    </td>
+        <h3 className="text-2xl font-semibold text-slate-800">
+          No Documents Found
+        </h3>
 
-                    <td className="py-3">
-                      {doc.category}
-                    </td>
+        <p className="text-slate-500 mt-2">
+          Upload your first document to unlock AI features.
+        </p>
 
-                    <td
-                      className={`py-3 font-semibold ${getStatusColor(
-                        doc.status
-                      )}`}
-                    >
-                      {doc.status}
-                    </td>
+      </div>
 
-                    <td className="py-3 flex flex-wrap gap-4">
+    ) : (
 
-                      <button
-                        onClick={() =>
-                          setSelectedDoc(doc.id)
-                        }
-                        disabled={
-                          doc.status !== "ready"
-                        }
-                        className={`${
-                          doc.status === "ready"
-                            ? "text-green-400 hover:text-green-300"
-                            : "text-slate-500 cursor-not-allowed"
-                        }`}
-                      >
-                        Summary
-                      </button>
+      <div className="grid lg:grid-cols-2 gap-6">
 
-                      <button
-                        onClick={() =>
-                          setSelectedNotesDoc(doc.id)
-                        }
-                        disabled={
-                          doc.status !== "ready"
-                        }
-                        className={`${
-                          doc.status === "ready"
-                            ? "text-purple-400 hover:text-purple-300"
-                            : "text-slate-500 cursor-not-allowed"
-                        }`}
-                      >
-                        Notes
-                      </button>
+        {filteredDocuments.map(
+          (doc) => (
+            <div
+              key={doc.id}
+              className="
+                bg-white
+                border
+                border-slate-200
+                rounded-3xl
+                p-6
+                shadow-sm
+                hover:shadow-xl
+                transition-all
+                duration-300
+              "
+            >
 
-                      <a
-                        href={`http://127.0.0.1:8000/api/documents/${doc.id}/download`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-400 hover:text-blue-300"
-                      >
-                        Download
-                      </a>
+              <div className="flex justify-between items-start">
 
-                      <button
-                        onClick={() =>
-                          deleteDocument(doc.id)
-                        }
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        Delete
-                      </button>
+                <div>
 
-                    </td>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {doc.original_filename}
+                  </h3>
 
-                  </tr>
-                ))}
+                  <p className="text-slate-500 mt-1">
+                    {doc.category}
+                  </p>
 
-              </tbody>
+                </div>
 
-            </table>
+                <span
+                  className={`
+                    px-3
+                    py-1
+                    rounded-full
+                    text-xs
+                    font-semibold
+                    ${getStatusBadge(
+                      doc.status
+                    )}
+                  `}
+                >
+                  {doc.status}
+                </span>
 
-          </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+
+                <button
+                  onClick={() =>
+                    setSelectedSummary(
+                      doc.id
+                    )
+                  }
+                  className="flex items-center gap-2 bg-violet-100 text-violet-700 px-4 py-2 rounded-xl"
+                >
+                  <Sparkles size={16} />
+                  Summary
+                </button>
+
+                <button
+                  onClick={() =>
+                    setSelectedNotes(
+                      doc.id
+                    )
+                  }
+                  className="flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-2 rounded-xl"
+                >
+                  <BookOpen size={16} />
+                  Notes
+                </button>
+
+                <button
+                  onClick={() =>
+                    downloadDocument(
+                      doc.id,
+                      doc.original_filename
+                    )
+                  }
+                  className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-xl"
+                >
+                  <Download size={16} />
+                  Download
+                </button>
+
+                <button
+                  onClick={() =>
+                    deleteDocument(
+                      doc.id
+                    )
+                  }
+                  className="flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-xl"
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+
+              </div>
+
+            </div>
+          )
         )}
 
       </div>
 
-      {selectedDoc && (
-        <SummaryModal
-          documentId={selectedDoc}
-          onClose={() =>
-            setSelectedDoc(null)
-          }
-        />
-      )}
+    )}
 
-      {selectedNotesDoc && (
-        <NotesModal
-          documentId={selectedNotesDoc}
-          onClose={() =>
-            setSelectedNotesDoc(null)
-          }
-        />
-      )}
-    </>
-  );
+  </div>
+
+  {selectedSummary && (
+    <SummaryModal
+      documentId={
+        selectedSummary
+      }
+      onClose={() =>
+        setSelectedSummary(
+          null
+        )
+      }
+    />
+  )}
+
+  {selectedNotes && (
+    <NotesModal
+      documentId={
+        selectedNotes
+      }
+      onClose={() =>
+        setSelectedNotes(
+          null
+        )
+      }
+    />
+  )}
+</>
+
+);
 }

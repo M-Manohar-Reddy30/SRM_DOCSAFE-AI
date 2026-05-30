@@ -1,17 +1,14 @@
 import logging
-import google.generativeai as genai
+
+from groq import Groq
 
 from app.core.config import settings
 from app.services.retrieval_service import RetrievalService
 
 logger = logging.getLogger(__name__)
 
-genai.configure(
-    api_key=settings.GEMINI_API_KEY
-)
-
-model = genai.GenerativeModel(
-    "gemini-2.5-flash"
+client = Groq(
+    api_key=settings.GROQ_API_KEY
 )
 
 
@@ -24,38 +21,50 @@ class RAGService:
         document_ids: list[str] = None
     ):
 
-        retrieved_chunks = RetrievalService.semantic_search(
-            query=query,
-            user_id=user_id,
-            top_k=6,
-            document_ids=document_ids
+        retrieved_chunks = (
+            RetrievalService.semantic_search(
+                query=query,
+                user_id=user_id,
+                top_k=6,
+                document_ids=document_ids
+            )
         )
 
         if not retrieved_chunks:
             return {
-                "answer": "I could not find this information in your uploaded documents.",
+                "answer": (
+                    "I could not find this information "
+                    "in your uploaded documents."
+                ),
                 "sources": []
             }
 
         context_blocks = []
 
-        for c in retrieved_chunks:
+        for chunk in retrieved_chunks:
 
-            doc_id = c["metadata"]["document_id"]
-            idx = c["metadata"]["chunk_index"]
+            doc_id = chunk["metadata"]["document_id"]
 
-            context_blocks.append(
-                f"[SOURCE: {doc_id} | CHUNK: {idx}]\n{c['text']}\n"
+            chunk_index = (
+                chunk["metadata"]["chunk_index"]
             )
 
-        context = "\n".join(context_blocks)
+            context_blocks.append(
+                f"[SOURCE: {doc_id} | "
+                f"CHUNK: {chunk_index}]\n"
+                f"{chunk['text']}\n"
+            )
+
+        context = "\n".join(
+            context_blocks
+        )
 
         prompt = f"""
-You are an AI assistant.
+You are an intelligent AI assistant.
 
-Use ONLY the information below.
+Answer ONLY using the provided context.
 
-If the answer is not present,
+If the answer is not found in the context,
 reply exactly:
 
 I could not find this information in your uploaded documents.
@@ -71,18 +80,36 @@ Question:
 
         try:
 
-            response = model.generate_content(
-                prompt
+            response = (
+                client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.2,
+                )
+            )
+
+            answer = (
+                response
+                .choices[0]
+                .message
+                .content
             )
 
             return {
-                "answer": response.text,
+                "answer": answer,
                 "sources": [
                     {
-                        "document_id": c["metadata"]["document_id"],
-                        "chunk_index": c["metadata"]["chunk_index"]
+                        "document_id":
+                        chunk["metadata"]["document_id"],
+                        "chunk_index":
+                        chunk["metadata"]["chunk_index"]
                     }
-                    for c in retrieved_chunks
+                    for chunk in retrieved_chunks
                 ]
             }
 

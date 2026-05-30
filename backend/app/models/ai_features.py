@@ -40,13 +40,6 @@ class Deadline(Base):
     confidence_score = Column(Float)
     document = relationship("Document", back_populates="deadlines")
 
-class Quiz(Base, TimestampMixin):
-    __tablename__ = "quizzes"
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
-    quiz_type = Column(String, nullable=False) # e.g., mcq, short_answer
-    content = Column(JSONB, nullable=False)
-    document = relationship("Document", back_populates="quizzes")
-
 class ChatHistory(Base):
     __tablename__ = "chat_history"
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

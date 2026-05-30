@@ -53,6 +53,12 @@ class ProcessingService:
                 doc.file_type
             )
 
+            # Extra safety
+            extracted_text = extracted_text.replace(
+                "\x00",
+                ""
+            )
+
             doc_text = DocumentText(
                 document_id=doc.id,
                 extracted_text=extracted_text,

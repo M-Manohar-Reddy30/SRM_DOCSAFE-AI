@@ -1,3 +1,10 @@
+from app.models.ai_features import (
+    DocumentSummary,
+    StudyNote,
+    DocumentText
+)
+
+from app.services.ai_service import AIService
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
