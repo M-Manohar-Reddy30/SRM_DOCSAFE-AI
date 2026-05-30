@@ -381,7 +381,7 @@ GitHub:
 https://github.com/M-Manohar-Reddy30
 
 LinkedIn:
-https://www.linkedin.com/in/manohar-reddy-m-729717365
+https://www.linkedin.com/in/manoharreddy-ai
 
 ---
 
