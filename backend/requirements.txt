@@ -10,12 +10,17 @@ email-validator
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
+
 langchain
+langchain-text-splitters
+
 chromadb
 pytesseract
 Pillow
 pdfplumber
 PyMuPDF
+
 python-dotenv
+
 google-generativeai
 groq
