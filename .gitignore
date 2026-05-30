@@ -4,3 +4,15 @@ __pycache__/
 node_modules/
 venv/
 .chroma/
+# Python cache
+__pycache__/
+*.pyc
+
+# Chroma DB
+backend/chroma_db/
+
+# SQLite
+*.sqlite3
+
+# Environment files
+.env
