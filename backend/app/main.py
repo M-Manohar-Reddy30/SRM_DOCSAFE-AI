@@ -1,7 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
-from app.api.routes import auth, documents, ai, chat, analytics
+from app.db.session import create_tables
+from app.models.user import User
+from app.models.document import Document
+from app.models.ai_features import (
+    DocumentText,
+    DocumentSummary,
+    StudyNote,
+    AITag,
+    Deadline,
+    ChatHistory
+)
+from app.api.routes import (
+    auth,
+    documents,
+    ai,
+    chat,
+    analytics
+)
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
@@ -19,6 +37,13 @@ app.include_router(ai.router, prefix=f"{settings.API_V1_STR}/ai", tags=["AI Oper
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["RAG Chat"])
 app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["Analytics"])
 
+@app.on_event("startup")
+def startup():
+    create_tables()
+
 @app.get("/")
 def read_root():
-    return {"status": "healthy", "service": settings.PROJECT_NAME}
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME
+    }
