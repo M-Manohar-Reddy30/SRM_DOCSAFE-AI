@@ -62,6 +62,9 @@ export default function Chat() {
                 onSelectChat={
                   setSelectedChat
                 }
+                onNewChat={() =>
+                  setSelectedChat(null)
+                }
               />
 
             </div>

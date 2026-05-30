@@ -33,9 +33,17 @@ def chat_with_docs(request: ChatRequest, db: Session = Depends(get_db), current_
         # Save history to Postgres
         chat_log = ChatHistory(
             user_id=current_user.id,
-            document_id=request.document_ids[0] if request.document_ids and len(request.document_ids) == 1 else None,
+            document_id=request.document_ids[0]
+            if request.document_ids and len(request.document_ids) == 1
+            else None,
+
+            title=request.query[:50],
+
             query=request.query,
-            response=response_data['answer']
+
+            response=response_data["answer"],
+
+            is_pinned=False
         )
         db.add(chat_log)
         db.commit()
@@ -54,3 +62,95 @@ def get_chat_history(db: Session = Depends(get_db), current_user: User = Depends
     """Retrieve user's chat history."""
     logs = db.query(ChatHistory).filter(ChatHistory.user_id == current_user.id).order_by(ChatHistory.timestamp.desc()).limit(50).all()
     return logs
+
+class RenameChatRequest(BaseModel):
+    title: str
+
+
+@router.put("/{chat_id}/rename")
+def rename_chat(
+    chat_id: str,
+    request: RenameChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    chat = (
+        db.query(ChatHistory)
+        .filter(
+            ChatHistory.id == chat_id,
+            ChatHistory.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not chat:
+        raise HTTPException(
+            status_code=404,
+            detail="Chat not found"
+        )
+
+    chat.title = request.title
+
+    db.commit()
+
+    return {
+        "message": "Chat renamed"
+    }
+
+@router.put("/{chat_id}/pin")
+def pin_chat(
+    chat_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    chat = (
+        db.query(ChatHistory)
+        .filter(
+            ChatHistory.id == chat_id,
+            ChatHistory.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not chat:
+        raise HTTPException(
+            status_code=404,
+            detail="Chat not found"
+        )
+
+    chat.is_pinned = not chat.is_pinned
+
+    db.commit()
+
+    return {
+        "is_pinned": chat.is_pinned
+    }
+
+@router.delete("/{chat_id}")
+def delete_chat(
+    chat_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    chat = (
+        db.query(ChatHistory)
+        .filter(
+            ChatHistory.id == chat_id,
+            ChatHistory.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not chat:
+        raise HTTPException(
+            status_code=404,
+            detail="Chat not found"
+        )
+
+    db.delete(chat)
+
+    db.commit()
+
+    return {
+        "message": "Chat deleted"
+    }

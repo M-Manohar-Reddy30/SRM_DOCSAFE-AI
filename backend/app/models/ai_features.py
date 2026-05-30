@@ -42,11 +42,53 @@ class Deadline(Base):
 
 class ChatHistory(Base):
     __tablename__ = "chat_history"
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL"), nullable=True, index=True)
-    query = Column(Text, nullable=False)
-    response = Column(Text, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
-    user = relationship("User", back_populates="chat_histories")
-    document = relationship("Document", back_populates="chat_histories")
+
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    document_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
+
+    title = Column(
+        String,
+        nullable=True
+    )
+
+    is_pinned = Column(
+        Boolean,
+        default=False
+    )
+
+    query = Column(
+        Text,
+        nullable=False
+    )
+
+    response = Column(
+        Text,
+        nullable=False
+    )
+
+    timestamp = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    user = relationship(
+        "User",
+        back_populates="chat_histories"
+    )
+
+    document = relationship(
+        "Document",
+        back_populates="chat_histories"
+    )
